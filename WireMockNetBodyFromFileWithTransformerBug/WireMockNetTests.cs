@@ -26,8 +26,8 @@ namespace WireMockNetBodyFromFileWithTransformerBug
 					.UsingPost())
 				.RespondWith(Response.Create()
 					.WithSuccess()
-					.WithBody(File.ReadAllText(responseFilePath))
-					.WithTransformer());
+					.WithTransformer()
+					.WithBody(File.ReadAllText(responseFilePath)));
 
 			_stub.Given(
 				Request.Create()
@@ -35,7 +35,17 @@ namespace WireMockNetBodyFromFileWithTransformerBug
 					.UsingPost())
 				.RespondWith(Response.Create()
 					.WithSuccess()
+					.WithTransformer(transformContentFromBodyAsFile: true)
+					.WithBodyFromFile(responseFilePath));
+
+			_stub.Given(
+				Request.Create()
+					.WithPath("/withbodyfromfile2")
+					.UsingPost())
+				.RespondWith(Response.Create()
+					.WithSuccess()
 					.WithBodyFromFile(responseFilePath)
+					// Wrong usage! WithTransformer() should be used before WithBodyFromFile()!
 					.WithTransformer(transformContentFromBodyAsFile: true));
 		}
 
@@ -60,6 +70,13 @@ namespace WireMockNetBodyFromFileWithTransformerBug
 		{
 			var response = await GetResponse("/withbodyfromfile");
 			Assert.Contains("Hello, Ivan!", response);
+		}
+
+		[Fact]
+		public async Task WithBodyFromFileFailsWithTransformerAfterWithBodyFromFile()
+		{
+			var response = await GetResponse("/withbodyfromfile2");
+			Assert.Empty(response);
 		}
 
 		private async Task<string> GetResponse(string relativePath)
